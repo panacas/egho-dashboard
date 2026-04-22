@@ -182,6 +182,7 @@ function DashboardApp({ usuarioAtivo, onLogout }) {
   const [loading, setLoading] = useState(false);
   const [newMonth, setNewMonth] = useState({ mes: "", faturamento: "", custo_producao: "", despesa_fixa: "", despesa_variavel: "", emprestimo: "", saldo: "", pedidos: "", meta: "" });
   const [notaInput, setNotaInput] = useState("");
+  const [mesSelecionado, setMesSelecionado] = useState("todos");
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -213,6 +214,24 @@ function DashboardApp({ usuarioAtivo, onLogout }) {
   const totalMidiaRoas = data.meta_ads.reduce((s, c) => s + c.receita, 0) / data.meta_ads.reduce((s, c) => s + c.gasto, 0);
   const estoqueCapitalTotal = data.produtos.reduce((s, p) => s + p.qty * p.custo, 0);
   const estoqueValorVenda = data.produtos.reduce((s, p) => s + p.qty * p.preco, 0);
+
+  // Mês selecionado
+  const mesesDisponiveis = [...data.months.map(m => m.mes), "Abr/26"];
+  const mesFiltrado = mesSelecionado === "todos" ? null : mesSelecionado;
+
+  const getMonthData = () => {
+    if (!mesFiltrado || mesFiltrado === "Abr/26") return null;
+    return data.months.find(m => m.mes === mesFiltrado);
+  };
+  const selectedMonth = getMonthData();
+
+  const selectedFat = mesFiltrado === "Abr/26" ? data.abr_parcial : selectedMonth ? selectedMonth.faturamento : null;
+  const selectedCusto = selectedMonth ? selectedMonth.custo_producao : null;
+  const selectedSaldo = selectedMonth ? selectedMonth.saldo : null;
+  const selectedMeta = mesFiltrado === "Abr/26" ? data.abr_meta : selectedMonth ? selectedMonth.meta : null;
+  const selectedPedidos = mesFiltrado === "Abr/26" ? data.abr_pedidos : selectedMonth ? selectedMonth.pedidos : null;
+  const selectedPctMeta = selectedFat && selectedMeta ? Math.round((selectedFat / selectedMeta) * 100) : null;
+  const selectedCpPct = selectedFat && selectedCusto ? Math.round((selectedCusto / selectedFat) * 100) : null;
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -320,78 +339,143 @@ function DashboardApp({ usuarioAtivo, onLogout }) {
         {/* OVERVIEW */}
         {activeTab === "overview" && (
           <div>
-            <div className="grid4" style={{ marginBottom: 12 }}>
-              {[
-                { l: "Abr/26 parcial", v: fmtFull(data.abr_parcial), s: `${abrPctMeta}% da meta · dia ${data.abr_dias_passados}`, c: abrPctMeta >= 70 ? "pos" : abrPctMeta >= 50 ? "warn" : "neg" },
-                { l: "Projeção Abr", v: fmtFull(projecaoAbr), s: `ritmo ${fmtFull(ritmoAbr)}/dia`, c: projecaoAbr >= data.abr_meta ? "pos" : "warn" },
-                { l: "Saldo Acumulado", v: fmtFull(totalSaldo), s: "jan–mar/26", c: totalSaldo >= 0 ? "pos" : "neg" },
-                { l: "Média Mensal", v: fmtFull(avgFat), s: "jan–mar/26", c: "" },
-              ].map((k, i) => (
-                <div key={i} className="card">
-                  <div className="kl">{k.l}</div>
-                  <div className={`kv ${k.c}`}>{k.v}</div>
-                  <div className="ks">{k.s}</div>
-                </div>
+            {/* Seletor de mês */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 9, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>Período</span>
+              {["todos", ...mesesDisponiveis].map(m => (
+                <button key={m} onClick={() => setMesSelecionado(m)} style={{
+                  background: mesSelecionado === m ? "#c8a96e" : "none",
+                  border: `0.5px solid ${mesSelecionado === m ? "#c8a96e" : "#2a2a2a"}`,
+                  borderRadius: 2, padding: "4px 12px", fontFamily: "inherit",
+                  fontSize: 10, color: mesSelecionado === m ? "#0a0a0a" : "#666",
+                  cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase"
+                }}>{m === "todos" ? "Todos" : m}</button>
               ))}
             </div>
 
-            {/* Barra progresso Abril */}
+            {/* KPIs — mês selecionado ou geral */}
+            {mesFiltrado ? (
+              <div className="grid4" style={{ marginBottom: 12 }}>
+                {[
+                  { l: "Faturamento", v: fmtFull(selectedFat || 0), s: mesFiltrado, c: "pos" },
+                  { l: "vs Meta", v: selectedPctMeta ? `${selectedPctMeta}%` : "—", s: selectedMeta ? `meta ${fmtFull(selectedMeta)}` : "sem meta", c: selectedPctMeta >= 100 ? "pos" : selectedPctMeta >= 70 ? "warn" : "neg" },
+                  { l: "Custo Produção", v: selectedCpPct ? `${selectedCpPct}%` : "—", s: selectedCusto ? fmtFull(selectedCusto) : "—", c: selectedCpPct > 40 ? "neg" : "pos" },
+                  { l: "Saldo Operacional", v: selectedSaldo !== null ? fmtFull(selectedSaldo) : mesFiltrado === "Abr/26" ? "em curso" : "—", s: selectedPedidos ? `${selectedPedidos} pedidos` : "", c: selectedSaldo > 0 ? "pos" : selectedSaldo < 0 ? "neg" : "warn" },
+                ].map((k, i) => (
+                  <div key={i} className="card">
+                    <div className="kl">{k.l}</div>
+                    <div className={`kv ${k.c}`}>{k.v}</div>
+                    <div className="ks">{k.s}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid4" style={{ marginBottom: 12 }}>
+                {[
+                  { l: "Abr/26 parcial", v: fmtFull(data.abr_parcial), s: `${abrPctMeta}% da meta · dia ${data.abr_dias_passados}`, c: abrPctMeta >= 70 ? "pos" : abrPctMeta >= 50 ? "warn" : "neg" },
+                  { l: "Projeção Abr", v: fmtFull(projecaoAbr), s: `ritmo ${fmtFull(ritmoAbr)}/dia`, c: projecaoAbr >= data.abr_meta ? "pos" : "warn" },
+                  { l: "Saldo Acumulado", v: fmtFull(totalSaldo), s: "jan–mar/26", c: totalSaldo >= 0 ? "pos" : "neg" },
+                  { l: "Média Mensal", v: fmtFull(avgFat), s: "jan–mar/26", c: "" },
+                ].map((k, i) => (
+                  <div key={i} className="card">
+                    <div className="kl">{k.l}</div>
+                    <div className={`kv ${k.c}`}>{k.v}</div>
+                    <div className="ks">{k.s}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Barra progresso */}
             <div className="card" style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 10, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>Abril — progresso vs meta</span>
-                <span style={{ fontSize: 10, color: "#c8a96e" }}>{fmtFull(data.abr_parcial)} / {fmtFull(data.abr_meta)}</span>
-              </div>
-              <div className="trk" style={{ height: 8, marginBottom: 6 }}>
-                <div style={{ height: 8, borderRadius: 2, width: `${Math.min(100, abrPctMeta)}%`, background: abrPctMeta >= 80 ? "#6bb87a" : abrPctMeta >= 50 ? "#c8a96e" : "#c05a5a", transition: "width 0.5s" }} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555" }}>
-                <span>Ritmo atual: {fmtFull(ritmoAbr)}/dia</span>
-                <span>Precisa: {fmtFull(ritmoNecessario)}/dia nos próximos {data.abr_dias_mes - data.abr_dias_passados} dias</span>
-              </div>
+              {mesFiltrado && mesFiltrado !== "Abr/26" && selectedMonth ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>{mesFiltrado} — faturamento vs meta</span>
+                    <span style={{ fontSize: 10, color: "#c8a96e" }}>{fmtFull(selectedFat || 0)} {selectedMeta ? `/ ${fmtFull(selectedMeta)}` : ""}</span>
+                  </div>
+                  <div className="trk" style={{ height: 8, marginBottom: 6 }}>
+                    <div style={{ height: 8, borderRadius: 2, width: `${Math.min(100, selectedPctMeta || 0)}%`, background: (selectedPctMeta || 0) >= 100 ? "#6bb87a" : (selectedPctMeta || 0) >= 70 ? "#c8a96e" : "#c05a5a", transition: "width 0.5s" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 16, fontSize: 10, color: "#555", flexWrap: "wrap" }}>
+                    {selectedCusto && <span>Custo prod: {fmtFull(selectedCusto)} ({selectedCpPct}%)</span>}
+                    {selectedMonth.despesa_fixa > 0 && <span>Desp. fixa: {fmtFull(selectedMonth.despesa_fixa)}</span>}
+                    {selectedMonth.despesa_variavel > 0 && <span>Desp. var: {fmtFull(selectedMonth.despesa_variavel)}</span>}
+                    {selectedMonth.emprestimo > 0 && <span style={{ color: "#c05a5a" }}>Empréstimo: {fmtFull(selectedMonth.emprestimo)}</span>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>Abril — progresso vs meta</span>
+                    <span style={{ fontSize: 10, color: "#c8a96e" }}>{fmtFull(data.abr_parcial)} / {fmtFull(data.abr_meta)}</span>
+                  </div>
+                  <div className="trk" style={{ height: 8, marginBottom: 6 }}>
+                    <div style={{ height: 8, borderRadius: 2, width: `${Math.min(100, abrPctMeta)}%`, background: abrPctMeta >= 80 ? "#6bb87a" : abrPctMeta >= 50 ? "#c8a96e" : "#c05a5a", transition: "width 0.5s" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555" }}>
+                    <span>Ritmo atual: {fmtFull(ritmoAbr)}/dia</span>
+                    <span>Precisa: {fmtFull(ritmoNecessario)}/dia nos próximos {data.abr_dias_mes - data.abr_dias_passados} dias</span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Gráfico barras */}
+            {/* Gráfico barras — destaca mês selecionado */}
             <div className="card" style={{ marginBottom: 8 }}>
               <div className="sec">Evolução faturamento</div>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 80 }}>
                 {data.months.map((m, i) => {
                   const pctMeta = m.meta > 0 ? Math.round((m.faturamento / m.meta) * 100) : null;
+                  const isSelected = mesFiltrado === m.mes;
                   return (
-                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div key={i} onClick={() => setMesSelecionado(mesSelecionado === m.mes ? "todos" : m.mes)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                       <div style={{ fontSize: 9, color: m.saldo >= 0 ? "#6bb87a" : "#c05a5a" }}>{fmt(m.faturamento)}</div>
-                      <div style={{ width: "100%", background: m.saldo >= 0 ? "#1a2e1a" : "#2e1a1a", border: `0.5px solid ${m.saldo >= 0 ? "#3a5a3a" : "#5a2a2a"}`, borderRadius: 2, height: `${Math.max(8, (m.faturamento / maxFat) * 65)}px` }} />
+                      <div style={{ width: "100%", background: isSelected ? "#2a3a2a" : m.saldo >= 0 ? "#1a2e1a" : "#2e1a1a", border: `${isSelected ? "1.5px" : "0.5px"} solid ${isSelected ? "#c8a96e" : m.saldo >= 0 ? "#3a5a3a" : "#5a2a2a"}`, borderRadius: 2, height: `${Math.max(8, (m.faturamento / maxFat) * 65)}px` }} />
                       {pctMeta && <div style={{ fontSize: 8, color: pctMeta >= 100 ? "#6bb87a" : "#c8a96e" }}>{pctMeta}%</div>}
-                      <div style={{ fontSize: 9, color: "#444" }}>{m.mes}</div>
+                      <div style={{ fontSize: 9, color: isSelected ? "#c8a96e" : "#444" }}>{m.mes}</div>
                     </div>
                   );
                 })}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div onClick={() => setMesSelecionado(mesSelecionado === "Abr/26" ? "todos" : "Abr/26")} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer" }}>
                   <div style={{ fontSize: 9, color: "#c8a96e" }}>{fmt(projecaoAbr)}~</div>
-                  <div style={{ width: "100%", background: "#1a1a0a", border: "0.5px dashed #c8a96e", borderRadius: 2, height: `${Math.max(8, (projecaoAbr / maxFat) * 65)}px` }} />
+                  <div style={{ width: "100%", background: mesFiltrado === "Abr/26" ? "#2a2a1a" : "#1a1a0a", border: `${mesFiltrado === "Abr/26" ? "1.5px" : "0.5px"} dashed #c8a96e`, borderRadius: 2, height: `${Math.max(8, (projecaoAbr / maxFat) * 65)}px` }} />
                   <div style={{ fontSize: 8, color: abrPctMeta >= 80 ? "#6bb87a" : "#c8a96e" }}>{abrPctMeta}%</div>
-                  <div style={{ fontSize: 9, color: "#c8a96e" }}>Abr/26</div>
+                  <div style={{ fontSize: 9, color: mesFiltrado === "Abr/26" ? "#c8a96e" : "#444" }}>Abr/26</div>
                 </div>
               </div>
+              <div style={{ fontSize: 9, color: "#2a2a2a", marginTop: 8, textAlign: "center" }}>clique na barra pra filtrar o mês</div>
             </div>
 
-            {/* Alertas */}
+            {/* Alertas — adapta ao mês selecionado */}
             <div className="card">
-              <div className="sec">Alertas ativos</div>
-              {[
-                { t: "ar", icon: "▲", txt: `Dívida Itaú ${fmtFull(data.divida_itau)} acumulando juros — sem plano de quitação` },
-                { t: "ar", icon: "▲", txt: `Custo de produção em ${Math.round((lastMonth.custo_producao / lastMonth.faturamento) * 100)}% da receita em ${lastMonth.mes} — ideal 25–35%` },
-                { t: "aw", icon: "◆", txt: `Ritmo de abr precisa subir de ${fmtFull(ritmoAbr)}/dia para ${fmtFull(ritmoNecessario)}/dia pra bater a meta` },
-                { t: "aw", icon: "◆", txt: `${fmtFull(estoqueCapitalTotal)} em capital parado no estoque — ${data.produtos[0].nome} com ${data.produtos[0].qty} unidades` },
-                { t: "aw", icon: "◆", txt: `Taxa de recompra em ${data.recompra.taxa}% — abaixo do ideal de 35–45% para streetwear` },
-                { t: "ag", icon: "●", txt: `SMS converte 3.4x mais que email — canal prioritário para ativações imediatas` },
-                { t: "ag", icon: "●", txt: `ROAS total Meta Ads em ${totalMidiaRoas.toFixed(1)}x — caps com melhor performance` },
-                { t: "ai", icon: "◉", txt: `Novos lançamentos com ROAS 2.1x — redistribuir verba para caps e retargeting` },
-              ].map((a, i) => (
-                <div key={i} className={`alert ${a.t}`}>
-                  <span style={{ flexShrink: 0 }}>{a.icon}</span>
-                  <span>{a.txt}</span>
+              <div className="sec">Alertas {mesFiltrado && mesFiltrado !== "todos" ? `— ${mesFiltrado}` : "ativos"}</div>
+              {mesFiltrado && selectedMonth ? (
+                <div>
+                  {selectedCpPct > 40 && <div className="alert ar"><span>▲</span><span>Custo de produção em {selectedCpPct}% da receita em {mesFiltrado} — acima do ideal de 25–35%</span></div>}
+                  {selectedSaldo < 0 && <div className="alert ar"><span>▲</span><span>Saldo operacional negativo em {mesFiltrado}: {fmtFull(selectedSaldo)}</span></div>}
+                  {selectedMeta && selectedPctMeta < 100 && <div className="alert aw"><span>◆</span><span>{mesFiltrado} fechou em {selectedPctMeta}% da meta ({fmtFull(selectedFat || 0)} de {fmtFull(selectedMeta)})</span></div>}
+                  {selectedMeta && selectedPctMeta >= 100 && <div className="alert ag"><span>●</span><span>{mesFiltrado} bateu a meta — {selectedPctMeta}% atingido ({fmtFull(selectedFat || 0)})</span></div>}
+                  {selectedMonth.emprestimo > 0 && <div className="alert ar"><span>▲</span><span>Pagamento de empréstimo em {mesFiltrado}: {fmtFull(selectedMonth.emprestimo)}</span></div>}
+                  {selectedCpPct <= 40 && selectedSaldo >= 0 && (!selectedMeta || selectedPctMeta >= 100) && !selectedMonth.emprestimo && <div className="alert ag"><span>●</span><span>{mesFiltrado} sem alertas críticos</span></div>}
                 </div>
-              ))}
+              ) : (
+                [
+                  { t: "ar", icon: "▲", txt: `Dívida Itaú ${fmtFull(data.divida_itau)} acumulando juros — sem plano de quitação` },
+                  { t: "ar", icon: "▲", txt: `Custo de produção em ${Math.round((lastMonth.custo_producao / lastMonth.faturamento) * 100)}% da receita em ${lastMonth.mes} — ideal 25–35%` },
+                  { t: "aw", icon: "◆", txt: `Ritmo de abr precisa subir de ${fmtFull(ritmoAbr)}/dia para ${fmtFull(ritmoNecessario)}/dia pra bater a meta` },
+                  { t: "aw", icon: "◆", txt: `${fmtFull(estoqueCapitalTotal)} em capital parado no estoque — ${data.produtos[0].nome} com ${data.produtos[0].qty} unidades` },
+                  { t: "aw", icon: "◆", txt: `Taxa de recompra em ${data.recompra.taxa}% — abaixo do ideal de 35–45% para streetwear` },
+                  { t: "ag", icon: "●", txt: `SMS converte 3.4x mais que email — canal prioritário para ativações imediatas` },
+                  { t: "ag", icon: "●", txt: `ROAS total Meta Ads em ${totalMidiaRoas.toFixed(1)}x — caps com melhor performance` },
+                  { t: "ai", icon: "◉", txt: `Novos lançamentos com ROAS 2.1x — redistribuir verba para caps e retargeting` },
+                ].map((a, i) => (
+                  <div key={i} className={`alert ${a.t}`}>
+                    <span style={{ flexShrink: 0 }}>{a.icon}</span>
+                    <span>{a.txt}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
