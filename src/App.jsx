@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 
-const SUPA_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPA_KEY = import.meta.env.VITE_SUPABASE_KEY;
-const supabase = createClient(SUPA_URL, SUPA_KEY);
-
+const STORAGE_KEY = "egho_dashboard_v2";
 const AUTH_KEY = "egho_auth_v1";
+
+// Usuários e senhas — edite aqui para adicionar/remover acesso
 const USUARIOS = {
   "romerio": "egho2026",
   "equipe": "egho2026",
@@ -13,386 +11,905 @@ const USUARIOS = {
 };
 
 function LoginScreen({ onLogin }) {
-  const [u, setU] = useState(""); const [s, setS] = useState(""); const [err, setErr] = useState("");
-  const login = () => {
-    if (USUARIOS[u.toLowerCase()] === s) { sessionStorage.setItem(AUTH_KEY, btoa(u)); onLogin(u); }
-    else { setErr("Usuário ou senha incorretos."); setS(""); }
+  const [usuario, setUsuario] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [tentativas, setTentativas] = useState(0);
+
+  const handleLogin = () => {
+    if (tentativas >= 5) { setErro("Muitas tentativas. Recarrega a página."); return; }
+    if (USUARIOS[usuario.toLowerCase()] && USUARIOS[usuario.toLowerCase()] === senha) {
+      sessionStorage.setItem(AUTH_KEY, btoa(usuario + ":" + Date.now()));
+      onLogin(usuario);
+    } else {
+      setTentativas(t => t + 1);
+      setErro("Usuário ou senha incorretos.");
+      setSenha("");
+    }
   };
+
   return (
-    <div style={{ fontFamily: "'IBM Plex Mono',monospace", background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');*{box-sizing:border-box;margin:0;padding:0}`}</style>
-      <div style={{ width: 320, padding: "40px 32px", background: "#0e0e0e", border: "0.5px solid #1e1e1e", borderRadius: 4 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: "0.25em", color: "#e8e0d0" }}>EGHO</div>
-          <div style={{ fontSize: 9, color: "#333", letterSpacing: "0.12em", marginTop: 4 }}>OPS DASHBOARD — ACESSO RESTRITO</div>
+    <div style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace", background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
+      <div style={{ width: 340, padding: "40px 36px", background: "#0e0e0e", border: "0.5px solid #1e1e1e", borderRadius: 4 }}>
+        <div style={{ marginBottom: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "0.25em", color: "#e8e0d0", marginBottom: 6 }}>EGHO</div>
+          <div style={{ fontSize: 9, color: "#333", letterSpacing: "0.15em", textTransform: "uppercase" }}>OPS Dashboard — Acesso Restrito</div>
         </div>
-        {[["Usuário", u, setU, "text"], ["Senha", s, setS, "password"]].map(([lbl, val, set, type]) => (
-          <div key={lbl} style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 9, color: "#444", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{lbl}</div>
-            <input type={type} value={val} onChange={e => { set(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && login()} style={{ width: "100%", background: "#080808", border: "0.5px solid #2a2a2a", borderRadius: 2, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: "#e8e0d0", outline: "none" }} />
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 9, color: "#444", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>Usuário</div>
+          <input
+            value={usuario}
+            onChange={e => { setUsuario(e.target.value); setErro(""); }}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="seu usuário"
+            autoFocus
+            style={{ width: "100%", background: "#080808", border: "0.5px solid #2a2a2a", borderRadius: 2, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: "#e8e0d0", outline: "none" }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 9, color: "#444", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>Senha</div>
+          <input
+            type="password"
+            value={senha}
+            onChange={e => { setSenha(e.target.value); setErro(""); }}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="••••••••"
+            style={{ width: "100%", background: "#080808", border: "0.5px solid #2a2a2a", borderRadius: 2, padding: "9px 12px", fontFamily: "inherit", fontSize: 12, color: "#e8e0d0", outline: "none" }}
+          />
+        </div>
+
+        {erro && (
+          <div style={{ fontSize: 11, color: "#c05a5a", background: "#1a0f0f", border: "0.5px solid #3a1515", borderRadius: 2, padding: "8px 12px", marginBottom: 14 }}>
+            {erro}
           </div>
-        ))}
-        {err && <div style={{ fontSize: 11, color: "#c05a5a", background: "#1a0f0f", border: "0.5px solid #3a1515", borderRadius: 2, padding: "8px 12px", marginBottom: 12 }}>{err}</div>}
-        <button onClick={login} style={{ width: "100%", background: "#c8a96e", border: "none", borderRadius: 2, padding: 10, fontFamily: "inherit", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#0a0a0a", cursor: "pointer" }}>Entrar →</button>
+        )}
+
+        <button
+          onClick={handleLogin}
+          style={{ width: "100%", background: "#c8a96e", border: "none", borderRadius: 2, padding: "10px", fontFamily: "inherit", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#0a0a0a", cursor: "pointer" }}
+        >
+          Entrar →
+        </button>
+
+        <div style={{ marginTop: 24, fontSize: 9, color: "#2a2a2a", textAlign: "center", letterSpacing: "0.08em" }}>
+          EGHO® — uso interno
+        </div>
       </div>
     </div>
   );
 }
 
-export default function App() {
+const INITIAL_DATA = {
+  months: [
+    { mes: "Jan/26", faturamento: 257391, custo_producao: 78405, despesa_fixa: 29984, despesa_variavel: 58284, emprestimo: 0, saldo: 64481, pedidos: 0, meta: 250000 },
+    { mes: "Fev/26", faturamento: 152376, custo_producao: 73969, despesa_fixa: 16561, despesa_variavel: 44921, emprestimo: 0, saldo: -1445, pedidos: 108, meta: 180000 },
+    { mes: "Mar/26", faturamento: 193624, custo_producao: 65878, despesa_fixa: 46943, despesa_variavel: 40063, emprestimo: 18136, saldo: 14581, pedidos: 482, meta: 200000 },
+  ],
+  abr_parcial: 66352,
+  abr_pedidos: 200,
+  abr_dias_passados: 22,
+  abr_dias_mes: 30,
+  abr_meta: 120000,
+  divida_itau: 95500,
+  investimento_midia: 11000,
+  breakeven: 130000,
+  crm: {
+    receita_edrone: 69944,
+    sms_receita: 46732,
+    email_receita: 21453,
+    whatsapp_receita: 1759,
+    carrinho_abandonado: 9090,
+    boas_vindas: 9002,
+    produtos_recomendados: 7020,
+    after_purchase: 6240,
+    produtos_visualizados: 5511,
+    recuperacao: 1512,
+    fidelidade: 313,
+    base_email: 10116,
+    base_sms: 6282,
+    base_whatsapp: 592,
+  },
+  produtos: [
+    { nome: "Post Viva Band Tee Charcoal", qty: 109, preco: 269, custo: 95, categoria: "tee" },
+    { nome: "Black Bird Tee OW", qty: 94, preco: 269, custo: 90, categoria: "tee" },
+    { nome: "Black Metal Cap Resin", qty: 78, preco: 265, custo: 85, categoria: "cap" },
+    { nome: "Board Shorts Camo", qty: 71, preco: 559, custo: 190, categoria: "bottom" },
+    { nome: "Guerrilla Denim Preta", qty: 64, preco: 569, custo: 210, categoria: "bottom" },
+    { nome: "Army Dad Hat Camo", qty: 61, preco: 299, custo: 90, categoria: "cap" },
+    { nome: "UNF Loose Sweatshorts Sand", qty: 46, preco: 299, custo: 100, categoria: "bottom" },
+    { nome: "Cyber Patrol Cap", qty: 45, preco: 279, custo: 88, categoria: "cap" },
+    { nome: "Rusty Signs Boxy Tee", qty: 42, preco: 299, custo: 95, categoria: "tee" },
+    { nome: "Gears Boxy Tee Off", qty: 41, preco: 299, custo: 95, categoria: "tee" },
+    { nome: "Industry Regular Tee Gray", qty: 39, preco: 269, custo: 88, categoria: "tee" },
+    { nome: "Delusional Regular Tee OW", qty: 37, preco: 269, custo: 88, categoria: "tee" },
+  ],
+  meta_ads: [
+    { campanha: "Caps Geral", gasto: 3200, receita: 18400, pedidos: 42 },
+    { campanha: "Bottoms / Calças", gasto: 2800, receita: 12600, pedidos: 24 },
+    { campanha: "Tees Best Sellers", gasto: 2500, receita: 9800, pedidos: 38 },
+    { campanha: "Retargeting", gasto: 1500, receita: 8200, pedidos: 19 },
+    { campanha: "Novos lançamentos", gasto: 1000, receita: 2100, pedidos: 8 },
+  ],
+  recompra: { taxa: 28, primeira_compra: 72 },
+  notas: [],
+  calendario: [],
+};
+
+const SYSTEM_PROMPT = `Você é o consultor financeiro e estratégico da EGHO, marca de streetwear brasileira fundada por Romério Castro em São Paulo. Estética militarista, urbana, rustica e guerrilha.
+
+CONTEXTO FINANCEIRO:
+- Jan/26: Fat R$257k, Saldo +R$64k
+- Fev/26: Fat R$152k, Saldo -R$1.4k (custo produção 55% da receita)
+- Mar/26: Fat R$193k, Saldo +R$14.5k (pagou R$18k empréstimo)
+- Abr/26 parcial (22 dias): R$66k Shopify, ritmo R$3k/dia, meta R$120k
+- Dívida Itaú: R$95.5k acumulando juros, não quitada
+- Breakeven mensal estimado: R$130k
+- Investimento mídia paga: R$10–12k/mês
+
+ESTOQUE CRÍTICO: Post Viva Band (109un), Black Bird Tee (94un), Black Metal Cap (78un), Board Shorts Camo (71un), Guerrilla Denim (64un), Army Dad Hat (61un)
+
+CRM (fev–abr): SMS gera 66.8% da receita CRM com 1/60 do volume de email. Boas-vindas R$9k automático. Carrinho abandonado R$9k (7.3% CTR).
+
+META ADS: Caps têm melhor ROAS (~5.7x). Novos lançamentos com ROAS 2.1x (abaixo do ideal). Retargeting eficiente.
+
+TAXA RECOMPRA: 28% — baixa para streetwear premium (ideal 35-45%).
+
+Fale em português informal (tutear). Seja direto e prático. Priorize ações que impactam caixa imediato. Quando receber novos dados, atualize sua análise.`;
+
+export default function EGHODashboard() {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_KEY));
-  const [user, setUser] = useState(() => { try { return atob(sessionStorage.getItem(AUTH_KEY) || ""); } catch { return ""; } });
-  if (!authed) return <LoginScreen onLogin={u => { setAuthed(true); setUser(u); }} />;
-  return <Dashboard user={user} onLogout={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }} />;
+  const [usuarioAtivo, setUsuarioAtivo] = useState(() => {
+    const s = sessionStorage.getItem(AUTH_KEY);
+    if (!s) return "";
+    try { return atob(s).split(":")[0]; } catch { return ""; }
+  });
+
+  if (!authed) return <LoginScreen onLogin={(u) => { setAuthed(true); setUsuarioAtivo(u); }} />;
+
+  return <DashboardApp usuarioAtivo={usuarioAtivo} onLogout={() => { sessionStorage.removeItem(AUTH_KEY); setAuthed(false); setUsuarioAtivo(""); }} />;
 }
 
-function Dashboard({ user, onLogout }) {
-  const [tab, setTab] = useState("overview");
-  const [pedidos, setPedidos] = useState([]);
-  const [metricas, setMetricas] = useState([]);
-  const [estoque, setEstoque] = useState([]);
-  const [pipeline, setPipeline] = useState([]);
-  const [config, setConfig] = useState({ breakeven: 130000, meta_mes: 120000, divida_itau: 95500, investimento_midia: 11000 });
-  const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState(null);
-  const [liveCount, setLiveCount] = useState(0);
-  const chatEndRef = useRef(null);
-  const [messages, setMessages] = useState([{ role: "assistant", content: "Dashboard em tempo real conectado. Dados carregando do Supabase..." }]);
+function DashboardApp({ usuarioAtivo, onLogout }) {
+  const [data, setData] = useState(INITIAL_DATA);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "Fala Romério. Dashboard v2 carregado — agora com Meta Ads, giro de estoque, projeção e margem por produto. O que quer analisar primeiro?" }
+  ]);
   const [input, setInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [newMonth, setNewMonth] = useState({ mes: "", faturamento: "", custo_producao: "", despesa_fixa: "", despesa_variavel: "", emprestimo: "", saldo: "", pedidos: "", meta: "" });
+  const [notaInput, setNotaInput] = useState("");
+  const chatEndRef = useRef(null);
 
-  // Carrega dados iniciais
   useEffect(() => {
-    loadAll();
-    setupRealtime();
+    try {
+      const load = async () => {
+        const saved = await window.storage?.get(STORAGE_KEY);
+        if (saved) setData(JSON.parse(saved.value));
+      };
+      load();
+    } catch {}
   }, []);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const loadAll = async () => {
-    const [p, m, e, pi, c] = await Promise.all([
-      supabase.from("pedidos").select("*").order("data", { ascending: false }).limit(500),
-      supabase.from("metricas_diarias").select("*").order("data", { ascending: false }).limit(90),
-      supabase.from("estoque").select("*").order("quantidade", { ascending: false }).limit(100),
-      supabase.from("pipeline").select("*").order("colecao"),
-      supabase.from("config").select("*"),
-    ]);
-    if (p.data) setPedidos(p.data);
-    if (m.data) setMetricas(m.data);
-    if (e.data) setEstoque(e.data);
-    if (pi.data) setPipeline(pi.data);
-    if (c.data) {
-      const cfg = {};
-      c.data.forEach(r => { cfg[r.chave] = parseFloat(r.valor) || r.valor; });
-      setConfig(prev => ({ ...prev, ...cfg }));
-    }
-    setLastSync(new Date());
-  };
+  const saveData = async (d) => { setData(d); try { await window.storage?.set(STORAGE_KEY, JSON.stringify(d)); } catch {} };
 
-  const setupRealtime = () => {
-    // Escuta novos pedidos em tempo real
-    supabase.channel("pedidos-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pedidos" }, payload => {
-        setPedidos(prev => [payload.new, ...prev]);
-        setLiveCount(n => n + 1);
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "metricas_diarias" }, () => {
-        supabase.from("metricas_diarias").select("*").order("data", { ascending: false }).limit(90).then(r => { if (r.data) setMetricas(r.data); });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, () => {
-        supabase.from("estoque").select("*").order("quantidade", { ascending: false }).limit(100).then(r => { if (r.data) setEstoque(r.data); });
-      })
-      .subscribe();
-  };
+  const fmt = (v) => `R$${(v / 1000).toFixed(0)}k`;
+  const fmtFull = (v) => `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
+  const fmtPct = (v) => `${Math.round(v)}%`;
 
-  const syncNow = async () => {
-    setSyncing(true);
-    try {
-      await fetch("/api/sync", { method: "POST" });
-      await loadAll();
-      setLastSync(new Date());
-    } catch (e) { console.error(e); }
-    setSyncing(false);
-  };
+  // Cálculos derivados
+  const projecaoAbr = Math.round((data.abr_parcial / data.abr_dias_passados) * data.abr_dias_mes);
+  const ritmoAbr = Math.round(data.abr_parcial / data.abr_dias_passados);
+  const ritmoNecessario = Math.round((data.abr_meta - data.abr_parcial) / (data.abr_dias_mes - data.abr_dias_passados));
+  const abrPctMeta = Math.round((data.abr_parcial / data.abr_meta) * 100);
+  const lastMonth = data.months[data.months.length - 1];
+  const avgFat = Math.round(data.months.reduce((s, m) => s + m.faturamento, 0) / data.months.length);
+  const totalSaldo = data.months.reduce((s, m) => s + m.saldo, 0);
+  const totalMidiaRoas = data.meta_ads.reduce((s, c) => s + c.receita, 0) / data.meta_ads.reduce((s, c) => s + c.gasto, 0);
+  const estoqueCapitalTotal = data.produtos.reduce((s, p) => s + p.qty * p.custo, 0);
+  const estoqueValorVenda = data.produtos.reduce((s, p) => s + p.qty * p.preco, 0);
 
-  // Cálculos
-  const hoje = new Date().toISOString().split("T")[0];
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const metricaHoje = metricas.find(m => m.data === hoje) || { faturamento: 0, pedidos: 0, ticket_medio: 0 };
-  const metricasMes = metricas.filter(m => m.data?.startsWith(mesAtual));
-  const fatMes = metricasMes.reduce((s, m) => s + (m.faturamento || 0), 0);
-  const pedidosMes = metricasMes.reduce((s, m) => s + (m.pedidos || 0), 0);
-  const diasPassados = new Date().getDate();
-  const diasMes = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const projecao = diasPassados > 0 ? Math.round((fatMes / diasPassados) * diasMes) : 0;
-  const pctMeta = config.meta_mes > 0 ? Math.round((fatMes / config.meta_mes) * 100) : 0;
-  const ticketMedio = pedidosMes > 0 ? Math.round(fatMes / pedidosMes) : 0;
-
-  const fmt = v => `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
-  const fmtk = v => `R$${Math.round(v / 1000)}k`;
-
-  const sendAI = async () => {
-    if (!input.trim() || aiLoading) return;
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
     const userMsg = { role: "user", content: input };
     const hist = [...messages, userMsg];
     setMessages(hist);
     setInput("");
-    setAiLoading(true);
-    const ctx = `DADOS REALTIME:\nFaturamento hoje: ${fmt(metricaHoje.faturamento)}\nPedidos hoje: ${metricaHoje.pedidos}\nFat mês: ${fmt(fatMes)} (${pctMeta}% da meta)\nProjeção fechamento: ${fmt(projecao)}\nTicket médio: ${fmt(ticketMedio)}\nPedidos mês: ${pedidosMes}\nBreakeven: ${fmt(config.breakeven)}\nDívida Itaú: ${fmt(config.divida_itau)}\nTop estoque parado: ${estoque.slice(0, 5).map(e => `${e.nome}: ${e.quantidade}un`).join(", ")}\nPipeline próximos lançamentos: ${pipeline.filter(p => p.status === "Em produção" || p.status === "Em pilotagem").slice(0, 5).map(p => p.nome).join(", ")}`;
+    setLoading(true);
+    const ctx = `DADOS ATUAIS:\n${JSON.stringify({ months: data.months, abr_parcial: data.abr_parcial, abr_meta: data.abr_meta, projecao_abr: projecaoAbr, ritmo_diario: ritmoAbr, ritmo_necessario: ritmoNecessario, divida_itau: data.divida_itau, breakeven: data.breakeven, meta_ads: data.meta_ads, roas_total: totalMidiaRoas.toFixed(2), estoque_capital_parado: estoqueCapitalTotal, taxa_recompra: data.recompra, notas: data.notas }, null, 2)}`;
     try {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, system: `Você é o consultor da EGHO, marca de streetwear de SP. Fale em português informal. Seja direto e prático. ${ctx}`, messages: hist.map(m => ({ role: m.role, content: m.content })) })
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: SYSTEM_PROMPT + "\n\n" + ctx, messages: hist.map(m => ({ role: m.role, content: m.content })) })
       });
       const d = await r.json();
-      setMessages(prev => [...prev, { role: "assistant", content: d.content?.find(b => b.type === "text")?.text || "Erro." }]);
+      const text = d.content?.find(b => b.type === "text")?.text || "Erro.";
+      setMessages(prev => [...prev, { role: "assistant", content: text }]);
     } catch { setMessages(prev => [...prev, { role: "assistant", content: "Erro de conexão." }]); }
-    setAiLoading(false);
+    setLoading(false);
   };
 
-  const tabs = ["overview", "realtime", "estoque", "pipeline", "chat"];
-  const tabLabels = { overview: "Visão Geral", realtime: "Ao Vivo", estoque: "Estoque", pipeline: "Pipeline", chat: "Chat IA" };
+  const addMonth = async () => {
+    if (!newMonth.mes || !newMonth.faturamento) return;
+    const m = { mes: newMonth.mes, faturamento: +newMonth.faturamento, custo_producao: +newMonth.custo_producao||0, despesa_fixa: +newMonth.despesa_fixa||0, despesa_variavel: +newMonth.despesa_variavel||0, emprestimo: +newMonth.emprestimo||0, saldo: +newMonth.saldo||0, pedidos: +newMonth.pedidos||0, meta: +newMonth.meta||0 };
+    await saveData({ ...data, months: [...data.months, m] });
+    setNewMonth({ mes: "", faturamento: "", custo_producao: "", despesa_fixa: "", despesa_variavel: "", emprestimo: "", saldo: "", pedidos: "", meta: "" });
+  };
+
+  const addNota = async () => {
+    if (!notaInput.trim()) return;
+    const nota = { data: new Date().toLocaleDateString("pt-BR"), texto: notaInput };
+    await saveData({ ...data, notas: [nota, ...data.notas].slice(0, 30) });
+    setNotaInput("");
+  };
+
+  const tabs = ["overview", "projecao", "calendario", "financeiro", "estoque", "midia", "crm", "chat"];
+  const tabLabels = { overview: "Visão Geral", projecao: "Projeção", calendario: "Calendário", financeiro: "Financeiro", estoque: "Estoque", midia: "Meta Ads", crm: "CRM", chat: "Chat IA" };
+
+  const maxFat = Math.max(...data.months.map(m => m.faturamento), projecaoAbr);
 
   return (
-    <div style={{ fontFamily: "'IBM Plex Mono',monospace", background: "#0a0a0a", minHeight: "100vh", color: "#e8e0d0" }}>
+    <div style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace", background: "#0a0a0a", minHeight: "100vh", color: "#e8e0d0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#333}
-        .tab{background:none;border:none;cursor:pointer;padding:8px 14px;font-family:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#444;border-bottom:1px solid transparent;transition:color .2s}
-        .tab.on{color:#c8a96e;border-bottom-color:#c8a96e}.tab:hover{color:#888}
-        .card{background:#111;border:.5px solid #1e1e1e;border-radius:3px;padding:14px}
-        .kv{font-size:20px;font-weight:600;margin:4px 0 2px}.kl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#555}.ks{font-size:10px;color:#555}
-        .pos{color:#6bb87a}.neg{color:#c05a5a}.warn{color:#c8a96e}
-        .inp{background:#0d0d0d;border:.5px solid #2a2a2a;border-radius:2px;padding:7px 10px;font-family:inherit;font-size:11px;color:#e8e0d0;width:100%;outline:none}
-        .inp:focus{border-color:#c8a96e}
-        .btn{background:none;border:.5px solid #333;border-radius:2px;padding:7px 14px;font-family:inherit;font-size:10px;letter-spacing:.08em;color:#c8a96e;cursor:pointer;text-transform:uppercase}
-        .btn:hover{background:#1a1a14;border-color:#c8a96e}.btnp{background:#c8a96e;color:#0a0a0a;border-color:#c8a96e}.btnp:hover{background:#dab97e}
-        .chat-u{background:#14140e;border-left:2px solid #c8a96e;padding:10px 14px;border-radius:2px;margin-bottom:8px;font-size:12px;line-height:1.6}
-        .chat-a{background:#0f0f0f;border-left:2px solid #2a2a2a;padding:10px 14px;border-radius:2px;margin-bottom:8px;font-size:12px;line-height:1.6;color:#aaa;white-space:pre-wrap}
-        .trk{background:#151515;border-radius:2px;height:5px}
-        .sec{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#444;margin:16px 0 10px;padding-bottom:5px;border-bottom:.5px solid #151515}
-        .live-dot{width:6px;height:6px;border-radius:50%;background:#6bb87a;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-        textarea.inp{resize:none}
-        .tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
-        .tag-r{background:#1a0f0f;color:#c05a5a;border:.5px solid #3a1515}
-        .tag-g{background:#0f1a0f;color:#6bb87a;border:.5px solid #153515}
-        .tag-w{background:#1a160a;color:#c8a96e;border:.5px solid #3a2e10}
-        .tag-b{background:#0f0f1a;color:#6b8ac0;border:.5px solid #151535}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #333; }
+        .tab { background: none; border: none; cursor: pointer; padding: 8px 14px; font-family: inherit; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #444; transition: color 0.2s; border-bottom: 1px solid transparent; }
+        .tab.on { color: #c8a96e; border-bottom-color: #c8a96e; }
+        .tab:hover { color: #888; }
+        .card { background: #111; border: 0.5px solid #1e1e1e; border-radius: 3px; padding: 14px; }
+        .kv { font-size: 20px; font-weight: 600; margin: 4px 0 2px; }
+        .kl { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #555; }
+        .ks { font-size: 10px; color: #555; }
+        .pos { color: #6bb87a; } .neg { color: #c05a5a; } .warn { color: #c8a96e; } .muted { color: #555; }
+        .inp { background: #0d0d0d; border: 0.5px solid #2a2a2a; border-radius: 2px; padding: 7px 10px; font-family: inherit; font-size: 11px; color: #e8e0d0; width: 100%; outline: none; }
+        .inp:focus { border-color: #c8a96e; }
+        .btn { background: none; border: 0.5px solid #333; border-radius: 2px; padding: 7px 14px; font-family: inherit; font-size: 10px; letter-spacing: 0.08em; color: #c8a96e; cursor: pointer; text-transform: uppercase; }
+        .btn:hover { background: #1a1a14; border-color: #c8a96e; }
+        .btnp { background: #c8a96e; color: #0a0a0a; border-color: #c8a96e; }
+        .btnp:hover { background: #dab97e; }
+        .chat-u { background: #14140e; border-left: 2px solid #c8a96e; padding: 10px 14px; border-radius: 2px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; }
+        .chat-a { background: #0f0f0f; border-left: 2px solid #2a2a2a; padding: 10px 14px; border-radius: 2px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; color: #aaa; white-space: pre-wrap; }
+        .trk { background: #151515; border-radius: 2px; height: 5px; }
+        .sec { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: #444; margin: 16px 0 10px; padding-bottom: 5px; border-bottom: 0.5px solid #151515; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .alert { border-radius: 2px; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; display: flex; gap: 10px; line-height: 1.5; }
+        .ar { background: #1a0f0f; color: #c05a5a; border: 0.5px solid #3a1515; }
+        .aw { background: #1a160a; color: #c8a96e; border: 0.5px solid #3a2e10; }
+        .ag { background: #0f1a0f; color: #6bb87a; border: 0.5px solid #153515; }
+        .ai { background: #0f0f1a; color: #6b8ac0; border: 0.5px solid #151535; }
+        textarea.inp { resize: none; }
+        input[type=number] { -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        .tag { display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+        .tag-r { background: #1a0f0f; color: #c05a5a; border: 0.5px solid #3a1515; }
+        .tag-g { background: #0f1a0f; color: #6bb87a; border: 0.5px solid #153515; }
+        .tag-w { background: #1a160a; color: #c8a96e; border: 0.5px solid #3a2e10; }
       `}</style>
 
       {/* Header */}
-      <div style={{ background: "#060606", borderBottom: ".5px solid #151515", padding: "11px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: "#060606", borderBottom: "0.5px solid #151515", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: ".2em" }}>EGHO</span>
-          <span style={{ fontSize: 9, color: "#333", letterSpacing: ".1em" }}>REALTIME OPS</span>
-          <span className="live-dot" style={{ marginLeft: 8 }} />
-          <span style={{ fontSize: 9, color: "#6bb87a" }}>LIVE</span>
-          {liveCount > 0 && <span style={{ fontSize: 9, color: "#c8a96e", marginLeft: 6 }}>+{liveCount} novos</span>}
+          <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: "0.2em" }}>EGHO</span>
+          <span style={{ fontSize: 9, color: "#333", letterSpacing: "0.12em" }}>OPS DASHBOARD v2</span>
         </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ fontSize: 9, color: "#444" }}>HOJ. <span className="pos">{fmt(metricaHoje.faturamento)}</span></span>
-          <span style={{ fontSize: 9, color: "#444" }}>MÊS <span className={pctMeta >= 80 ? "pos" : "warn"}>{fmtk(fatMes)}</span></span>
-          {lastSync && <span style={{ fontSize: 8, color: "#333" }}>sync {lastSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
-          <button onClick={syncNow} disabled={syncing} className="btn" style={{ padding: "3px 10px", fontSize: 9 }}>{syncing ? "..." : "↻ sync"}</button>
-          <span style={{ fontSize: 9, color: "#555" }}>{user.toUpperCase()}</span>
-          <button onClick={onLogout} style={{ background: "none", border: ".5px solid #1e1e1e", borderRadius: 2, padding: "3px 8px", fontFamily: "inherit", fontSize: 9, color: "#444", cursor: "pointer" }}>SAIR</button>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <span style={{ fontSize: 9, color: "#444", letterSpacing: "0.08em" }}>USER <span style={{ color: "#c8a96e" }}>{usuarioAtivo.toUpperCase()}</span></span>
+          <button onClick={onLogout} style={{ background: "none", border: "0.5px solid #2a2a2a", borderRadius: 2, padding: "3px 10px", fontFamily: "inherit", fontSize: 9, color: "#555", cursor: "pointer", letterSpacing: "0.08em" }}>SAIR</button>
+          <div style={{ fontSize: 9, color: "#444" }}>BREAKEVEN <span style={{ color: data.abr_parcial > data.breakeven ? "#6bb87a" : "#c05a5a" }}>{fmt(data.breakeven)}</span></div>
+          <div style={{ fontSize: 9, color: "#444" }}>DÍVIDA ITAÚ <span style={{ color: "#c05a5a" }}>{fmtFull(data.divida_itau)}</span></div>
+          <div style={{ fontSize: 9, color: "#333" }}>{new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()}</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ background: "#060606", borderBottom: ".5px solid #151515", padding: "0 20px", display: "flex" }}>
-        {tabs.map(t => <button key={t} className={`tab ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{tabLabels[t]}</button>)}
+      <div style={{ background: "#060606", borderBottom: "0.5px solid #151515", padding: "0 20px", display: "flex", gap: 2, overflowX: "auto" }}>
+        {tabs.map(t => <button key={t} className={`tab ${activeTab === t ? "on" : ""}`} onClick={() => setActiveTab(t)}>{tabLabels[t]}</button>)}
       </div>
 
       <div style={{ padding: "16px 20px", maxWidth: 960 }}>
 
         {/* OVERVIEW */}
-        {tab === "overview" && (
+        {activeTab === "overview" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 }}>
+            <div className="grid4" style={{ marginBottom: 12 }}>
               {[
-                { l: "Hoje", v: fmt(metricaHoje.faturamento), s: `${metricaHoje.pedidos} pedidos`, c: metricaHoje.faturamento > 0 ? "pos" : "" },
-                { l: "Mês atual", v: fmt(fatMes), s: `${pctMeta}% da meta`, c: pctMeta >= 80 ? "pos" : pctMeta >= 50 ? "warn" : "neg" },
-                { l: "Projeção", v: fmt(projecao), s: `meta: ${fmt(config.meta_mes)}`, c: projecao >= config.meta_mes ? "pos" : "warn" },
-                { l: "Ticket médio", v: fmt(ticketMedio), s: `${pedidosMes} pedidos no mês`, c: "" },
+                { l: "Abr/26 parcial", v: fmtFull(data.abr_parcial), s: `${abrPctMeta}% da meta · dia ${data.abr_dias_passados}`, c: abrPctMeta >= 70 ? "pos" : abrPctMeta >= 50 ? "warn" : "neg" },
+                { l: "Projeção Abr", v: fmtFull(projecaoAbr), s: `ritmo ${fmtFull(ritmoAbr)}/dia`, c: projecaoAbr >= data.abr_meta ? "pos" : "warn" },
+                { l: "Saldo Acumulado", v: fmtFull(totalSaldo), s: "jan–mar/26", c: totalSaldo >= 0 ? "pos" : "neg" },
+                { l: "Média Mensal", v: fmtFull(avgFat), s: "jan–mar/26", c: "" },
               ].map((k, i) => (
-                <div key={i} className="card"><div className="kl">{k.l}</div><div className={`kv ${k.c}`}>{k.v}</div><div className="ks">{k.s}</div></div>
+                <div key={i} className="card">
+                  <div className="kl">{k.l}</div>
+                  <div className={`kv ${k.c}`}>{k.v}</div>
+                  <div className="ks">{k.s}</div>
+                </div>
               ))}
             </div>
 
-            {/* Progresso meta */}
+            {/* Barra progresso Abril */}
             <div className="card" style={{ marginBottom: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 10, color: "#555", letterSpacing: ".1em", textTransform: "uppercase" }}>Progresso — meta do mês</span>
-                <span style={{ fontSize: 10, color: "#c8a96e" }}>{fmt(fatMes)} / {fmt(config.meta_mes)}</span>
+                <span style={{ fontSize: 10, color: "#555", letterSpacing: "0.1em", textTransform: "uppercase" }}>Abril — progresso vs meta</span>
+                <span style={{ fontSize: 10, color: "#c8a96e" }}>{fmtFull(data.abr_parcial)} / {fmtFull(data.abr_meta)}</span>
               </div>
               <div className="trk" style={{ height: 8, marginBottom: 6 }}>
-                <div style={{ height: 8, borderRadius: 2, width: `${Math.min(100, pctMeta)}%`, background: pctMeta >= 80 ? "#6bb87a" : pctMeta >= 50 ? "#c8a96e" : "#c05a5a", transition: "width 0.5s" }} />
+                <div style={{ height: 8, borderRadius: 2, width: `${Math.min(100, abrPctMeta)}%`, background: abrPctMeta >= 80 ? "#6bb87a" : abrPctMeta >= 50 ? "#c8a96e" : "#c05a5a", transition: "width 0.5s" }} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555" }}>
-                <span>Dia {diasPassados} de {diasMes}</span>
-                <span>Projeção: {fmt(projecao)}</span>
+                <span>Ritmo atual: {fmtFull(ritmoAbr)}/dia</span>
+                <span>Precisa: {fmtFull(ritmoNecessario)}/dia nos próximos {data.abr_dias_mes - data.abr_dias_passados} dias</span>
               </div>
             </div>
 
-            {/* Gráfico últimos 14 dias */}
+            {/* Gráfico barras */}
             <div className="card" style={{ marginBottom: 8 }}>
-              <div className="sec">Últimos 14 dias</div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 70 }}>
-                {metricas.slice(0, 14).reverse().map((m, i) => {
-                  const maxVal = Math.max(...metricas.slice(0, 14).map(x => x.faturamento || 0), 1);
-                  const h = Math.max(4, ((m.faturamento || 0) / maxVal) * 60);
+              <div className="sec">Evolução faturamento</div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 80 }}>
+                {data.months.map((m, i) => {
+                  const pctMeta = m.meta > 0 ? Math.round((m.faturamento / m.meta) * 100) : null;
                   return (
-                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                      <div style={{ width: "100%", background: m.data === hoje ? "#c8a96e33" : "#1a2e1a", border: `.5px solid ${m.data === hoje ? "#c8a96e" : "#3a5a3a"}`, borderRadius: 2, height: h + "px" }} title={`${m.data}: ${fmt(m.faturamento || 0)}`} />
-                      <div style={{ fontSize: 8, color: "#333" }}>{m.data?.slice(8)}</div>
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 9, color: m.saldo >= 0 ? "#6bb87a" : "#c05a5a" }}>{fmt(m.faturamento)}</div>
+                      <div style={{ width: "100%", background: m.saldo >= 0 ? "#1a2e1a" : "#2e1a1a", border: `0.5px solid ${m.saldo >= 0 ? "#3a5a3a" : "#5a2a2a"}`, borderRadius: 2, height: `${Math.max(8, (m.faturamento / maxFat) * 65)}px` }} />
+                      {pctMeta && <div style={{ fontSize: 8, color: pctMeta >= 100 ? "#6bb87a" : "#c8a96e" }}>{pctMeta}%</div>}
+                      <div style={{ fontSize: 9, color: "#444" }}>{m.mes}</div>
                     </div>
                   );
                 })}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{ fontSize: 9, color: "#c8a96e" }}>{fmt(projecaoAbr)}~</div>
+                  <div style={{ width: "100%", background: "#1a1a0a", border: "0.5px dashed #c8a96e", borderRadius: 2, height: `${Math.max(8, (projecaoAbr / maxFat) * 65)}px` }} />
+                  <div style={{ fontSize: 8, color: abrPctMeta >= 80 ? "#6bb87a" : "#c8a96e" }}>{abrPctMeta}%</div>
+                  <div style={{ fontSize: 9, color: "#c8a96e" }}>Abr/26</div>
+                </div>
               </div>
             </div>
 
             {/* Alertas */}
             <div className="card">
-              <div className="sec">Alertas</div>
+              <div className="sec">Alertas ativos</div>
               {[
-                config.divida_itau > 0 && { t: "tag-r", txt: `Dívida Itaú ${fmt(config.divida_itau)} — sem quitação definida` },
-                fatMes < config.breakeven && { t: "tag-r", txt: `Faturamento do mês abaixo do breakeven (${fmt(config.breakeven)})` },
-                pctMeta < 50 && diasPassados > 15 && { t: "tag-r", txt: `Apenas ${pctMeta}% da meta atingida na metade do mês` },
-                estoque.filter(e => e.quantidade > 60).length > 0 && { t: "tag-w", txt: `${estoque.filter(e => e.quantidade > 60).length} produtos com estoque acima de 60 unidades` },
-                pipeline.filter(p => p.status === "Em produção").length > 0 && { t: "tag-b", txt: `${pipeline.filter(p => p.status === "Em produção").length} produtos em produção no pipeline` },
-              ].filter(Boolean).map((a, i) => (
-                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 12, lineHeight: 1.5 }}>
-                  <span className={`tag ${a.t}`}>{a.t === "tag-r" ? "▲" : a.t === "tag-w" ? "◆" : "◉"}</span>
-                  <span style={{ color: "#aaa" }}>{a.txt}</span>
+                { t: "ar", icon: "▲", txt: `Dívida Itaú ${fmtFull(data.divida_itau)} acumulando juros — sem plano de quitação` },
+                { t: "ar", icon: "▲", txt: `Custo de produção em ${Math.round((lastMonth.custo_producao / lastMonth.faturamento) * 100)}% da receita em ${lastMonth.mes} — ideal 25–35%` },
+                { t: "aw", icon: "◆", txt: `Ritmo de abr precisa subir de ${fmtFull(ritmoAbr)}/dia para ${fmtFull(ritmoNecessario)}/dia pra bater a meta` },
+                { t: "aw", icon: "◆", txt: `${fmtFull(estoqueCapitalTotal)} em capital parado no estoque — ${data.produtos[0].nome} com ${data.produtos[0].qty} unidades` },
+                { t: "aw", icon: "◆", txt: `Taxa de recompra em ${data.recompra.taxa}% — abaixo do ideal de 35–45% para streetwear` },
+                { t: "ag", icon: "●", txt: `SMS converte 3.4x mais que email — canal prioritário para ativações imediatas` },
+                { t: "ag", icon: "●", txt: `ROAS total Meta Ads em ${totalMidiaRoas.toFixed(1)}x — caps com melhor performance` },
+                { t: "ai", icon: "◉", txt: `Novos lançamentos com ROAS 2.1x — redistribuir verba para caps e retargeting` },
+              ].map((a, i) => (
+                <div key={i} className={`alert ${a.t}`}>
+                  <span style={{ flexShrink: 0 }}>{a.icon}</span>
+                  <span>{a.txt}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* REALTIME */}
-        {tab === "realtime" && (
+        {/* PROJEÇÃO */}
+        {activeTab === "projecao" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-              <div className="card">
-                <div className="kl">Hoje</div>
-                <div className="kv pos">{fmt(metricaHoje.faturamento)}</div>
-                <div className="ks">{metricaHoje.pedidos} pedidos · ticket {fmt(metricaHoje.ticket_medio || 0)}</div>
-              </div>
-              <div className="card">
-                <div className="kl">Últimas 24h</div>
-                <div className="kv">{pedidos.filter(p => new Date(p.data) > new Date(Date.now() - 86400000)).length} pedidos</div>
-                <div className="ks">{fmt(pedidos.filter(p => new Date(p.data) > new Date(Date.now() - 86400000)).reduce((s, p) => s + (p.valor || 0), 0))}</div>
+            <div className="grid3" style={{ marginBottom: 12 }}>
+              {[
+                { l: "Projeção Fechamento", v: fmtFull(projecaoAbr), s: `baseado em ${fmtFull(ritmoAbr)}/dia`, c: projecaoAbr >= data.abr_meta ? "pos" : "warn" },
+                { l: "Meta Abril", v: fmtFull(data.abr_meta), s: `${abrPctMeta}% atingido`, c: "" },
+                { l: "Gap pra Meta", v: fmtFull(Math.max(0, data.abr_meta - projecaoAbr)), s: projecaoAbr >= data.abr_meta ? "meta atingível no ritmo atual" : `precisa +${fmtFull(ritmoNecessario - ritmoAbr)}/dia`, c: projecaoAbr >= data.abr_meta ? "pos" : "neg" },
+              ].map((k, i) => <div key={i} className="card"><div className="kl">{k.l}</div><div className={`kv ${k.c}`}>{k.v}</div><div className="ks">{k.s}</div></div>)}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Cenários de fechamento</div>
+              {[
+                { label: "Ritmo atual mantido", valor: projecaoAbr, descricao: `${fmtFull(ritmoAbr)}/dia pelos próximos ${data.abr_dias_mes - data.abr_dias_passados} dias` },
+                { label: "Com 1 SMS hoje (estimativa)", valor: projecaoAbr + 3500, descricao: "histórico: SMS gera R$2.5k–5.8k em 24h" },
+                { label: "Ritmo necessário pra meta", valor: data.abr_meta, descricao: `precisa ${fmtFull(ritmoNecessario)}/dia` },
+              ].map((c, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 220, fontSize: 12, color: "#aaa" }}>{c.label}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555", marginBottom: 3 }}>
+                      <span>{fmtFull(c.valor)}</span>
+                      <span>{c.descricao}</span>
+                    </div>
+                    <div className="trk">
+                      <div style={{ height: 5, borderRadius: 2, background: c.valor >= data.abr_meta ? "#6bb87a" : "#c8a96e", width: `${Math.min(100, Math.round((c.valor / data.abr_meta) * 100))}%` }} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 500, width: 40, textAlign: "right", color: c.valor >= data.abr_meta ? "#6bb87a" : "#c8a96e" }}>{Math.round((c.valor / data.abr_meta) * 100)}%</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Atualizar dados de abril</div>
+              <div className="grid4" style={{ marginBottom: 10 }}>
+                {[
+                  ["abr_parcial", "Faturamento parcial"],
+                  ["abr_dias_passados", "Dias passados"],
+                  ["abr_meta", "Meta do mês"],
+                  ["abr_pedidos", "Pedidos parcial"],
+                ].map(([k, lbl]) => (
+                  <div key={k}>
+                    <div style={{ fontSize: 9, color: "#555", marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>{lbl}</div>
+                    <input className="inp" type="number" value={data[k]} onChange={e => saveData({ ...data, [k]: +e.target.value })} />
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="card">
-              <div className="sec">Pedidos recentes <span className="live-dot" /></div>
-              <div style={{ maxHeight: 460, overflowY: "auto" }}>
-                {pedidos.slice(0, 30).map((p, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: ".5px solid #0f0f0f", flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 9, color: "#444", width: 80 }}>{p.data ? new Date(p.data).toLocaleDateString("pt-BR") : "—"}</div>
-                    <div style={{ fontSize: 11, color: "#aaa", flex: 1 }}>{p.nome || "Cliente"}</div>
-                    <div style={{ fontSize: 10, color: "#555" }}>{p.cidade || ""} {p.estado || ""}</div>
-                    <span className={`tag ${p.status === "paid" ? "tag-g" : p.status === "refunded" ? "tag-r" : "tag-w"}`}>{p.status}</span>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "#c8a96e", width: 90, textAlign: "right" }}>{fmt(p.valor || 0)}</div>
+              <div className="sec">Configurações base</div>
+              <div className="grid3">
+                {[
+                  ["breakeven", "Breakeven mensal"],
+                  ["investimento_midia", "Investimento mídia"],
+                  ["divida_itau", "Dívida Itaú"],
+                ].map(([k, lbl]) => (
+                  <div key={k}>
+                    <div style={{ fontSize: 9, color: "#555", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{lbl}</div>
+                    <input className="inp" type="number" value={data[k]} onChange={e => saveData({ ...data, [k]: +e.target.value })} />
                   </div>
                 ))}
-                {pedidos.length === 0 && <div style={{ fontSize: 11, color: "#444", padding: "20px 0", textAlign: "center" }}>Nenhum pedido ainda. Clique em "↻ sync" para carregar.</div>}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* FINANCEIRO */}
+        {activeTab === "financeiro" && (
+          <div>
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Histórico mensal</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>{["Mês", "Faturamento", "Meta", "%", "C.Prod", "%CP", "D.Fixa", "D.Var", "Emprést.", "Saldo", "Pedidos"].map(h => <th key={h} style={{ textAlign: "right", padding: "5px 8px", fontWeight: 400, fontSize: 9, color: "#444", borderBottom: "0.5px solid #151515", letterSpacing: "0.08em" }}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {data.months.map((m, i) => {
+                      const cp = Math.round((m.custo_producao / m.faturamento) * 100);
+                      const pctMeta = m.meta > 0 ? Math.round((m.faturamento / m.meta) * 100) : null;
+                      return (
+                        <tr key={i} style={{ borderBottom: "0.5px solid #0f0f0f" }}>
+                          <td style={{ padding: "7px 8px", color: "#777", fontSize: 10 }}>{m.mes}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right" }}>{fmtFull(m.faturamento)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: "#555" }}>{m.meta > 0 ? fmtFull(m.meta) : "—"}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: pctMeta ? (pctMeta >= 100 ? "#6bb87a" : "#c8a96e") : "#555" }}>{pctMeta ? pctMeta + "%" : "—"}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: "#888" }}>{fmtFull(m.custo_producao)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: cp > 40 ? "#c05a5a" : "#6bb87a" }}>{cp}%</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: "#888" }}>{fmtFull(m.despesa_fixa)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: "#888" }}>{fmtFull(m.despesa_variavel)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: m.emprestimo > 0 ? "#c05a5a" : "#333" }}>{m.emprestimo > 0 ? fmtFull(m.emprestimo) : "—"}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", fontWeight: 500, color: m.saldo >= 0 ? "#6bb87a" : "#c05a5a" }}>{fmtFull(m.saldo)}</td>
+                          <td style={{ padding: "7px 8px", textAlign: "right", color: "#666" }}>{m.pedidos > 0 ? m.pedidos : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="sec">Adicionar mês</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
+                {[["mes","Mês (ex: Mai/26)"],["faturamento","Faturamento"],["meta","Meta"],["custo_producao","Custo Produção"],["despesa_fixa","Desp. Fixa"],["despesa_variavel","Desp. Variável"],["emprestimo","Empréstimo"],["saldo","Saldo Operacional"],["pedidos","Pedidos"]].map(([k,lbl]) => (
+                  <div key={k}>
+                    <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>{lbl}</div>
+                    <input className="inp" type={k === "mes" ? "text" : "number"} placeholder={k === "mes" ? "Mai/26" : "0"} value={newMonth[k]} onChange={e => setNewMonth(p => ({ ...p, [k]: e.target.value }))} />
+                  </div>
+                ))}
+              </div>
+              <button className="btn btnp" onClick={addMonth}>Salvar mês</button>
             </div>
           </div>
         )}
 
         {/* ESTOQUE */}
-        {tab === "estoque" && (
+        {activeTab === "estoque" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
-              <div className="card"><div className="kl">Total SKUs</div><div className="kv">{estoque.length}</div><div className="ks">variantes ativas</div></div>
-              <div className="card"><div className="kl">Estoque crítico</div><div className="kv neg">{estoque.filter(e => e.quantidade <= 3 && e.quantidade >= 0).length}</div><div className="ks">SKUs com ≤3 unidades</div></div>
-              <div className="card"><div className="kl">Excesso</div><div className="kv warn">{estoque.filter(e => e.quantidade > 50).length}</div><div className="ks">SKUs com +50 unidades</div></div>
+            <div className="grid3" style={{ marginBottom: 12 }}>
+              {[
+                { l: "Capital parado", v: fmtFull(estoqueCapitalTotal), s: "custo dos produtos em estoque", c: "neg" },
+                { l: "Potencial receita", v: fmtFull(estoqueValorVenda), s: "se vender tudo no preço cheio", c: "pos" },
+                { l: "Margem potencial", v: fmtFull(estoqueValorVenda - estoqueCapitalTotal), s: `${Math.round(((estoqueValorVenda - estoqueCapitalTotal) / estoqueValorVenda) * 100)}% de margem bruta`, c: "warn" },
+              ].map((k, i) => <div key={i} className="card"><div className="kl">{k.l}</div><div className={`kv ${k.c}`}>{k.v}</div><div className="ks">{k.s}</div></div>)}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Estoque por produto — capital imobilizado</div>
+              {data.produtos.map((p, i) => {
+                const capital = p.qty * p.custo;
+                const margem = Math.round(((p.preco - p.custo) / p.preco) * 100);
+                const urgencia = p.qty > 80 ? "tag-r" : p.qty > 50 ? "tag-w" : "tag-g";
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <div style={{ width: 220, fontSize: 11, color: "#aaa" }}>{p.nome}</div>
+                    <span className={`tag ${urgencia}`}>{p.qty} un</span>
+                    <div style={{ flex: 1, minWidth: 100 }}>
+                      <div className="trk">
+                        <div style={{ height: 5, borderRadius: 2, background: p.qty > 80 ? "#c05a5a" : p.qty > 50 ? "#c8a96e" : "#6bb87a", width: `${(p.qty / 120) * 100}%` }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#c05a5a", width: 70, textAlign: "right" }}>{fmtFull(capital)}</div>
+                    <div style={{ fontSize: 10, color: "#6bb87a", width: 40, textAlign: "right" }}>{margem}%mg</div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="card">
-              <div className="sec">Produtos por estoque <span className="live-dot" /></div>
-              <div style={{ maxHeight: 500, overflowY: "auto" }}>
-                {estoque.slice(0, 60).map((e, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: ".5px solid #0a0a0a" }}>
-                    <div style={{ flex: 1, fontSize: 11, color: "#aaa" }}>{e.nome}</div>
-                    <div style={{ fontSize: 10, color: "#555", width: 80, textAlign: "right" }}>{e.sku}</div>
-                    <div style={{ width: 60, textAlign: "right" }}>
-                      <span className={`tag ${e.quantidade > 50 ? "tag-w" : e.quantidade <= 3 ? "tag-r" : "tag-g"}`}>{e.quantidade} un</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#c8a96e", width: 70, textAlign: "right" }}>R${e.preco}</div>
-                  </div>
+              <div className="sec">Notas de estoque / lançamentos</div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <input className="inp" value={notaInput} onChange={e => setNotaInput(e.target.value)} placeholder="ex: restock army dad hat 50un chegou · blood denim esgotado" onKeyDown={e => e.key === "Enter" && addNota()} />
+                <button className="btn" onClick={addNota}>+ nota</button>
+              </div>
+              <div style={{ maxHeight: 180, overflowY: "auto" }}>
+                {data.notas.length === 0 ? <div style={{ fontSize: 11, color: "#333" }}>nenhuma nota ainda.</div> : data.notas.map((n, i) => (
+                  <div key={i} style={{ fontSize: 11, color: "#777", padding: "5px 0", borderBottom: "0.5px solid #111" }}><span style={{ color: "#444", marginRight: 8 }}>{n.data}</span>{n.texto}</div>
                 ))}
-                {estoque.length === 0 && <div style={{ fontSize: 11, color: "#444", padding: "20px 0", textAlign: "center" }}>Clique em "↻ sync" para carregar o estoque da Shopify.</div>}
               </div>
             </div>
           </div>
         )}
 
-        {/* PIPELINE NOTION */}
-        {tab === "pipeline" && (
+        {/* META ADS */}
+        {activeTab === "midia" && (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 12 }}>
-              {["Em produção", "Em pilotagem", "Desenvolvimento de ficha", "Entregue"].map(s => (
-                <div key={s} className="card">
-                  <div className="kl" style={{ fontSize: 8 }}>{s}</div>
-                  <div className="kv">{pipeline.filter(p => p.status === s).length}</div>
-                  <div className="ks">produtos</div>
+            <div className="grid4" style={{ marginBottom: 12 }}>
+              {[
+                { l: "Gasto total", v: fmtFull(data.meta_ads.reduce((s, c) => s + c.gasto, 0)), s: "mês referência", c: "" },
+                { l: "Receita gerada", v: fmtFull(data.meta_ads.reduce((s, c) => s + c.receita, 0)), s: "atribuída ao Meta", c: "pos" },
+                { l: "ROAS médio", v: `${totalMidiaRoas.toFixed(1)}x`, s: "retorno por R$1 investido", c: totalMidiaRoas >= 4 ? "pos" : totalMidiaRoas >= 2.5 ? "warn" : "neg" },
+                { l: "Pedidos via ads", v: data.meta_ads.reduce((s, c) => s + c.pedidos, 0), s: "total de pedidos", c: "" },
+              ].map((k, i) => <div key={i} className="card"><div className="kl">{k.l}</div><div className={`kv ${k.c}`}>{k.v}</div><div className="ks">{k.s}</div></div>)}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">ROAS por campanha</div>
+              {data.meta_ads.map((c, i) => {
+                const roas = (c.receita / c.gasto);
+                const cpa = Math.round(c.gasto / c.pedidos);
+                const color = roas >= 5 ? "#6bb87a" : roas >= 3 ? "#c8a96e" : "#c05a5a";
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{ width: 180, fontSize: 11, color: "#aaa" }}>{c.campanha}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555", marginBottom: 3 }}>
+                        <span>{fmtFull(c.gasto)} gasto → {fmtFull(c.receita)}</span>
+                        <span>CPA {fmtFull(cpa)} · {c.pedidos} pedidos</span>
+                      </div>
+                      <div className="trk">
+                        <div style={{ height: 5, borderRadius: 2, background: color, width: `${Math.min(100, (roas / 7) * 100)}%` }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, width: 50, textAlign: "right", color }}>{roas.toFixed(1)}x</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="card">
+              <div className="sec">Recomendações de verba</div>
+              <div className={`alert ag`}><span>●</span><span>Caps Geral com ROAS {(data.meta_ads[0].receita/data.meta_ads[0].gasto).toFixed(1)}x — aumentar verba em R$500–1k/mês</span></div>
+              <div className={`alert aw`}><span>◆</span><span>Retargeting com CPA R${Math.round(data.meta_ads[3].gasto/data.meta_ads[3].pedidos)} — escalar até 20% do budget total</span></div>
+              <div className={`alert ar`}><span>▲</span><span>Novos lançamentos com ROAS {(data.meta_ads[4].receita/data.meta_ads[4].gasto).toFixed(1)}x — reduzir verba ou trocar criativo</span></div>
+              <div className={`alert ai`}><span>◉</span><span>Board Shorts e Guerrilla Denim com 135 unidades paradas — criar campanha específica pra girar estoque</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* CRM */}
+        {activeTab === "crm" && (
+          <div>
+            <div className="grid3" style={{ marginBottom: 12 }}>
+              {[
+                { l: "Receita total CRM", v: fmtFull(data.crm.receita_edrone), s: "fev–abr/26 · ROI 1.106%", c: "pos" },
+                { l: "SMS (canal principal)", v: fmtFull(data.crm.sms_receita), s: "66.8% da receita CRM", c: "pos" },
+                { l: "Taxa de recompra", v: `${data.recompra.taxa}%`, s: "ideal 35–45% para streetwear", c: data.recompra.taxa >= 35 ? "pos" : "warn" },
+              ].map((k, i) => <div key={i} className="card"><div className="kl">{k.l}</div><div className={`kv ${k.c}`}>{k.v}</div><div className="ks">{k.s}</div></div>)}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Receita por canal</div>
+              {[
+                { nome: "SMS", receita: data.crm.sms_receita, base: data.crm.base_sms, cor: "#6bb87a" },
+                { nome: "Email", receita: data.crm.email_receita, base: data.crm.base_email, cor: "#c8a96e" },
+                { nome: "WhatsApp", receita: data.crm.whatsapp_receita, base: data.crm.base_whatsapp, cor: "#6b8ac0" },
+              ].map((c, i) => {
+                const rpm = Math.round((c.receita / c.base) * 1000);
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{ width: 80, fontSize: 12, color: "#aaa" }}>{c.nome}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555", marginBottom: 3 }}>
+                        <span>{fmtFull(c.receita)}</span>
+                        <span>{c.base.toLocaleString("pt-BR")} inscritos · R${rpm}/1k msgs</span>
+                      </div>
+                      <div className="trk">
+                        <div style={{ height: 5, borderRadius: 2, background: c.cor, width: `${(c.receita / data.crm.sms_receita) * 100}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="card" style={{ marginBottom: 8 }}>
+              <div className="sec">Automações — performance</div>
+              {[
+                { nome: "Boas-vindas", receita: data.crm.boas_vindas, pedidos: 29, nota: "tag-g", status: "ótimo" },
+                { nome: "Carrinho abandonado", receita: data.crm.carrinho_abandonado, pedidos: 20, nota: "tag-g", status: "ótimo" },
+                { nome: "Produtos recomendados", receita: data.crm.produtos_recomendados, pedidos: 21, nota: "tag-w", status: "bom" },
+                { nome: "After purchase", receita: data.crm.after_purchase, pedidos: 11, nota: "tag-w", status: "bom" },
+                { nome: "Produtos visualizados", receita: data.crm.produtos_visualizados, pedidos: 16, nota: "tag-w", status: "bom" },
+                { nome: "Recuperação clientes", receita: data.crm.recuperacao, pedidos: 4, nota: "tag-r", status: "fraco" },
+                { nome: "Programa fidelidade", receita: data.crm.fidelidade, pedidos: 1, nota: "tag-r", status: "fraco" },
+              ].map((a, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 190, fontSize: 11, color: "#aaa" }}>{a.nome}</div>
+                  <span className={`tag ${a.nota}`}>{a.status}</span>
+                  <div style={{ flex: 1 }}>
+                    <div className="trk">
+                      <div style={{ height: 5, borderRadius: 2, background: a.nota === "tag-g" ? "#6bb87a" : a.nota === "tag-w" ? "#c8a96e" : "#c05a5a", width: `${(a.receita / data.crm.carrinho_abandonado) * 100}%` }} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#888", width: 80, textAlign: "right" }}>{fmtFull(a.receita)}</div>
+                  <div style={{ fontSize: 10, color: "#555", width: 60, textAlign: "right" }}>{a.pedidos} pedidos</div>
                 </div>
               ))}
             </div>
 
-            {["LANÇAMENTO MAIO/JUNHO - DRK HRSE", "LANÇAMENTO/RESTOCK - MARÇO", "COLLAB EGHO x WT", "EGHO X FÔRNO", "UNIFORMS", "RESTOCK"].map(col => {
-              const prods = pipeline.filter(p => p.colecao === col);
-              if (!prods.length) return null;
-              return (
-                <div key={col} className="card" style={{ marginBottom: 8 }}>
-                  <div className="sec">{col}</div>
-                  {prods.map((p, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: ".5px solid #0a0a0a" }}>
-                      <div style={{ flex: 1, fontSize: 11, color: "#aaa" }}>{p.nome}</div>
-                      <span className={`tag ${p.status === "Entregue" || p.status === "Pedido feito" ? "tag-g" : p.status === "Em produção" || p.status === "Em pilotagem" ? "tag-b" : p.status === "Cancelado" ? "tag-r" : "tag-w"}`}>{p.status || "—"}</span>
-                      {p.preco_venda > 0 && <div style={{ fontSize: 10, color: "#6bb87a", width: 80, textAlign: "right" }}>R${p.preco_venda}</div>}
-                      {p.preco_custo > 0 && <div style={{ fontSize: 10, color: "#555", width: 70, textAlign: "right" }}>cst R${p.preco_custo}</div>}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-
-            {pipeline.length === 0 && (
-              <div className="card" style={{ textAlign: "center", padding: "30px" }}>
-                <div style={{ fontSize: 11, color: "#444" }}>Clique em "↻ sync" para carregar o pipeline do Notion.</div>
+            <div className="card">
+              <div className="sec">Base de contatos — crescimento</div>
+              <div className="grid3">
+                {[
+                  { l: "Email", v: data.crm.base_email.toLocaleString("pt-BR"), trend: "↑ 9.2k → 10.1k (+10%)", c: "pos" },
+                  { l: "SMS", v: data.crm.base_sms.toLocaleString("pt-BR"), trend: "↑ 6.0k → 6.3k (+5%)", c: "pos" },
+                  { l: "WhatsApp", v: data.crm.base_whatsapp.toLocaleString("pt-BR"), trend: "540 → 592 (+10%)", c: "pos" },
+                ].map((b, i) => (
+                  <div key={i} style={{ padding: "12px", background: "#0d0d0d", borderRadius: 2, border: "0.5px solid #151515" }}>
+                    <div className="kl">{b.l}</div>
+                    <div style={{ fontSize: 22, fontWeight: 600, margin: "4px 0" }}>{b.v}</div>
+                    <div style={{ fontSize: 10, color: "#6bb87a" }}>{b.trend}</div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
+
+        {/* CALENDÁRIO */}
+        {activeTab === "calendario" && (
+          <CalendarioTab data={data} saveData={saveData} fmtFull={fmtFull} fmt={fmt} />
+        )}
+
         {/* CHAT */}
-        {tab === "chat" && (
+        {activeTab === "chat" && (
           <div>
             <div className="card" style={{ marginBottom: 8, height: 440, overflowY: "auto" }}>
               {messages.map((m, i) => (
                 <div key={i} className={m.role === "user" ? "chat-u" : "chat-a"}>
-                  <div style={{ fontSize: 8, color: "#444", marginBottom: 5 }}>{m.role === "user" ? "VOCÊ" : "EGHO ADVISOR"}</div>
+                  <div style={{ fontSize: 8, color: "#444", marginBottom: 5, letterSpacing: "0.1em" }}>{m.role === "user" ? "VOCÊ" : "EGHO ADVISOR"}</div>
                   <div style={{ color: m.role === "user" ? "#e8e0d0" : "#aaa" }}>{m.content}</div>
                 </div>
               ))}
-              {aiLoading && <div className="chat-a"><div style={{ fontSize: 8, color: "#444", marginBottom: 5 }}>EGHO ADVISOR</div><div style={{ color: "#444" }}>analisando...</div></div>}
+              {loading && <div className="chat-a"><div style={{ fontSize: 8, color: "#444", marginBottom: 5 }}>EGHO ADVISOR</div><div style={{ color: "#444" }}>analisando...</div></div>}
               <div ref={chatEndRef} />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <textarea className="inp" rows={3} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAI(); } }} placeholder="o que tá acontecendo hoje? cole dados, peça análise..." />
-              <button className="btn btnp" onClick={sendAI} disabled={aiLoading} style={{ alignSelf: "flex-end", padding: "12px 20px" }}>{aiLoading ? "..." : "→"}</button>
+              <textarea className="inp" rows={3} placeholder="cole dados, tire dúvidas, peça análise... ex: 'maio fechou em 85k, custo subiu 5%, o que priorizar?'" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} />
+              <button className="btn btnp" onClick={sendMessage} disabled={loading} style={{ alignSelf: "flex-end", padding: "12px 20px" }}>{loading ? "..." : "→"}</button>
             </div>
+            <div style={{ fontSize: 9, color: "#2a2a2a", marginTop: 5 }}>enter envia · shift+enter quebra linha</div>
           </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPONENTE CALENDÁRIO ───────────────────────────────────────────────────
+
+const TIPOS = {
+  lancamento: { label: "Lançamento", color: "#c8a96e", bg: "#1a160a" },
+  restock:    { label: "Restock",    color: "#6bb87a", bg: "#0f1a0f" },
+  sale:       { label: "Sale",       color: "#c05a5a", bg: "#1a0f0f" },
+  sms:        { label: "SMS/Email",  color: "#6b8ac0", bg: "#0f0f1a" },
+  collab:     { label: "Collab",     color: "#b06bc8", bg: "#150f1a" },
+  evento:     { label: "Evento",     color: "#888",    bg: "#151515" },
+  midia:      { label: "Mídia Paga", color: "#c8a96e", bg: "#1a160a" },
+};
+
+const STATUS = {
+  planejado:  { label: "Planejado",  color: "#555" },
+  confirmado: { label: "Confirmado", color: "#c8a96e" },
+  realizado:  { label: "Realizado",  color: "#6bb87a" },
+  cancelado:  { label: "Cancelado",  color: "#c05a5a" },
+};
+
+const EVENTO_VAZIO = { id: "", data: "", tipo: "lancamento", nome: "", custo: "", fat_potencial: "", fat_realizado: "", status: "planejado", notas: "" };
+
+function CalendarioTab({ data, saveData, fmtFull, fmt }) {
+  const [form, setForm] = useState({ ...EVENTO_VAZIO, id: Date.now().toString() });
+  const [editId, setEditId] = useState(null);
+  const [filtro, setFiltro] = useState("todos");
+  const [expandido, setExpandido] = useState(null);
+
+  const eventos = data.calendario || [];
+
+  const salvarEvento = async () => {
+    if (!form.nome || !form.data) return;
+    const ev = { ...form, id: editId || Date.now().toString(), custo: +form.custo || 0, fat_potencial: +form.fat_potencial || 0, fat_realizado: +form.fat_realizado || 0 };
+    const lista = editId ? eventos.map(e => e.id === editId ? ev : e) : [...eventos, ev];
+    lista.sort((a, b) => a.data.localeCompare(b.data));
+    await saveData({ ...data, calendario: lista });
+    setForm({ ...EVENTO_VAZIO, id: Date.now().toString() });
+    setEditId(null);
+  };
+
+  const deletarEvento = async (id) => {
+    await saveData({ ...data, calendario: eventos.filter(e => e.id !== id) });
+  };
+
+  const editarEvento = (ev) => {
+    setForm({ ...ev });
+    setEditId(ev.id);
+    window.scrollTo(0, 0);
+  };
+
+  const eventosFiltrados = filtro === "todos" ? eventos : eventos.filter(e => e.tipo === filtro || e.status === filtro);
+
+  // Totais
+  const totalCusto = eventosFiltrados.reduce((s, e) => s + e.custo, 0);
+  const totalPotencial = eventosFiltrados.reduce((s, e) => s + e.fat_potencial, 0);
+  const totalRealizado = eventosFiltrados.filter(e => e.status === "realizado").reduce((s, e) => s + e.fat_realizado, 0);
+  const roiPotencial = totalCusto > 0 ? (totalPotencial / totalCusto).toFixed(1) : "—";
+  const roiRealizado = totalCusto > 0 ? (totalRealizado / totalCusto).toFixed(1) : "—";
+
+  // Próximos eventos (7 dias)
+  const hoje = new Date().toISOString().slice(0, 10);
+  const em7dias = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const proximos = eventos.filter(e => e.data >= hoje && e.data <= em7dias && e.status !== "cancelado");
+
+  return (
+    <div>
+      {/* Próximos 7 dias */}
+      {proximos.length > 0 && (
+        <div style={{ marginBottom: 12, padding: "10px 14px", background: "#1a160a", border: "0.5px solid #3a2e10", borderRadius: 3 }}>
+          <div style={{ fontSize: 9, color: "#c8a96e", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Próximos 7 dias</div>
+          {proximos.map(e => (
+            <div key={e.id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 5, fontSize: 11 }}>
+              <span style={{ color: "#555", width: 80 }}>{new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+              <span style={{ background: TIPOS[e.tipo]?.bg, color: TIPOS[e.tipo]?.color, border: `0.5px solid ${TIPOS[e.tipo]?.color}40`, borderRadius: 2, padding: "1px 6px", fontSize: 9, letterSpacing: "0.06em" }}>{TIPOS[e.tipo]?.label}</span>
+              <span style={{ color: "#c8a96e", flex: 1 }}>{e.nome}</span>
+              {e.fat_potencial > 0 && <span style={{ color: "#6bb87a", fontSize: 10 }}>pot. {fmtFull(e.fat_potencial)}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
+        {[
+          { l: "Custo total", v: fmtFull(totalCusto), c: totalCusto > 0 ? "neg" : "muted" },
+          { l: "Potencial fat.", v: fmtFull(totalPotencial), c: "pos" },
+          { l: "ROI potencial", v: roiPotencial === "—" ? "—" : roiPotencial + "x", c: parseFloat(roiPotencial) >= 3 ? "pos" : "warn" },
+          { l: "Fat. realizado", v: totalRealizado > 0 ? fmtFull(totalRealizado) : "—", c: "pos" },
+        ].map((k, i) => (
+          <div key={i} className="card">
+            <div className="kl">{k.l}</div>
+            <div className={`kv ${k.c}`}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Formulário */}
+      <div className="card" style={{ marginBottom: 12 }}>
+        <div className="sec">{editId ? "Editar evento" : "Novo evento"}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+          {[
+            { k: "nome", l: "Nome do evento", t: "text", ph: "ex: Blood Denim Restock" },
+            { k: "data", l: "Data", t: "date", ph: "" },
+          ].map(({ k, l, t, ph }) => (
+            <div key={k}>
+              <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div>
+              <input className="inp" type={t} value={form[k]} placeholder={ph} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} />
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tipo</div>
+            <select className="inp" value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))}>
+              {Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+          {[
+            { k: "custo", l: "Custo (R$)", ph: "0" },
+            { k: "fat_potencial", l: "Fat. Potencial (R$)", ph: "0" },
+            { k: "fat_realizado", l: "Fat. Realizado (R$)", ph: "0" },
+          ].map(({ k, l, ph }) => (
+            <div key={k}>
+              <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>{l}</div>
+              <input className="inp" type="number" value={form[k]} placeholder={ph} onChange={e => setForm(p => ({ ...p, [k]: e.target.value }))} />
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>Status</div>
+            <select className="inp" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}>
+              {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 9, color: "#555", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>Notas</div>
+          <input className="inp" type="text" value={form.notas} placeholder="ex: SMS pra base completa · depende de restock · collab com @artista" onChange={e => setForm(p => ({ ...p, notas: e.target.value }))} />
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btnp" onClick={salvarEvento}>{editId ? "Atualizar" : "Adicionar"} evento</button>
+          {editId && <button className="btn" onClick={() => { setForm({ ...EVENTO_VAZIO, id: Date.now().toString() }); setEditId(null); }}>Cancelar edição</button>}
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {[["todos", "Todos"], ...Object.entries(TIPOS).map(([k, v]) => [k, v.label]), ["realizado", "Realizados"], ["planejado", "Planejados"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFiltro(k)} style={{ background: filtro === k ? "#1a1a14" : "none", border: `0.5px solid ${filtro === k ? "#c8a96e" : "#2a2a2a"}`, borderRadius: 2, padding: "4px 10px", fontFamily: "inherit", fontSize: 9, color: filtro === k ? "#c8a96e" : "#555", cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase" }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Lista de eventos */}
+      <div className="card">
+        {eventosFiltrados.length === 0 ? (
+          <div style={{ fontSize: 11, color: "#333", padding: "20px 0", textAlign: "center" }}>nenhum evento ainda. adiciona o primeiro aí em cima.</div>
+        ) : (
+          eventosFiltrados.map(e => {
+            const roi = e.custo > 0 ? (e.status === "realizado" && e.fat_realizado > 0 ? (e.fat_realizado / e.custo).toFixed(1) : e.fat_potencial > 0 ? (e.fat_potencial / e.custo).toFixed(1) : null) : null;
+            const isExp = expandido === e.id;
+            return (
+              <div key={e.id} style={{ borderBottom: "0.5px solid #111", padding: "10px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => setExpandido(isExp ? null : e.id)}>
+                  <span style={{ fontSize: 10, color: "#444", width: 70, flexShrink: 0 }}>{new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+                  <span style={{ background: TIPOS[e.tipo]?.bg, color: TIPOS[e.tipo]?.color, border: `0.5px solid ${TIPOS[e.tipo]?.color}40`, borderRadius: 2, padding: "1px 6px", fontSize: 9, letterSpacing: "0.06em", flexShrink: 0 }}>{TIPOS[e.tipo]?.label}</span>
+                  <span style={{ flex: 1, fontSize: 12, color: "#ccc" }}>{e.nome}</span>
+                  <span style={{ fontSize: 10, color: STATUS[e.status]?.color, flexShrink: 0 }}>{STATUS[e.status]?.label}</span>
+                  {roi && <span style={{ fontSize: 10, color: parseFloat(roi) >= 3 ? "#6bb87a" : "#c8a96e", flexShrink: 0 }}>{roi}x ROI</span>}
+                  {e.custo > 0 && <span style={{ fontSize: 10, color: "#c05a5a", flexShrink: 0 }}>-{fmtFull(e.custo)}</span>}
+                  {e.fat_potencial > 0 && e.status !== "realizado" && <span style={{ fontSize: 10, color: "#6bb87a", flexShrink: 0 }}>+{fmtFull(e.fat_potencial)} pot.</span>}
+                  {e.fat_realizado > 0 && <span style={{ fontSize: 10, color: "#6bb87a", fontWeight: 500, flexShrink: 0 }}>+{fmtFull(e.fat_realizado)} real.</span>}
+                  <span style={{ fontSize: 10, color: "#333" }}>{isExp ? "▲" : "▼"}</span>
+                </div>
+                {isExp && (
+                  <div style={{ marginTop: 10, paddingLeft: 78, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {e.notas && <div style={{ fontSize: 11, color: "#666", fontStyle: "italic" }}>{e.notas}</div>}
+                    <div style={{ display: "flex", gap: 16, fontSize: 10, color: "#555" }}>
+                      {e.custo > 0 && <span>Custo: <span style={{ color: "#c05a5a" }}>{fmtFull(e.custo)}</span></span>}
+                      {e.fat_potencial > 0 && <span>Potencial: <span style={{ color: "#c8a96e" }}>{fmtFull(e.fat_potencial)}</span></span>}
+                      {e.fat_realizado > 0 && <span>Realizado: <span style={{ color: "#6bb87a" }}>{fmtFull(e.fat_realizado)}</span></span>}
+                      {roi && <span>ROI: <span style={{ color: parseFloat(roi) >= 3 ? "#6bb87a" : "#c8a96e" }}>{roi}x</span></span>}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                      <button className="btn" onClick={() => editarEvento(e)} style={{ fontSize: 9, padding: "4px 10px" }}>editar</button>
+                      <button className="btn" onClick={() => deletarEvento(e.id)} style={{ fontSize: 9, padding: "4px 10px", color: "#c05a5a", borderColor: "#3a1515" }}>deletar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
